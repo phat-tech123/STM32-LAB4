@@ -95,49 +95,50 @@ void SCH_Dispatch_Tasks(void){
 		SCH_Tasks_G.head->task.RunMe--;
 		(*SCH_Tasks_G.head->task.pTask)();
 
+		if(SCH_Tasks_G.head->task.Period <= 0){
+			SCH_Delete_Task();
+			return;
+		}
 		node *copyNode = (node*)malloc(sizeof(node));
 		copyNode->task = makeTask(SCH_Tasks_G.head->task.pTask, SCH_Tasks_G.head->task.Period, SCH_Tasks_G.head->task.Period);
 		copyNode->next = NULL;
 		copyNode->prev = NULL;
 		SCH_Delete_Task();
+		//ADD TASK AGAIN
+		if(SCH_Tasks_G.head == NULL && SCH_Tasks_G.tail == NULL){
+			SCH_Tasks_G.head = SCH_Tasks_G.tail = copyNode;
+			return;
+		}
 
-		if(copyNode->task.Period > 0){
-			//ADD TASK AGAIN
-			if(SCH_Tasks_G.head == NULL && SCH_Tasks_G.tail == NULL){
-				SCH_Tasks_G.head = SCH_Tasks_G.tail = copyNode;
-				return;
+		if(copyNode->task.Delay <= SCH_Tasks_G.head->task.Delay){
+			//Update Delay
+			SCH_Tasks_G.head->task.Delay -= copyNode->task.Delay;
+			//Insert First
+			copyNode->next = SCH_Tasks_G.head;
+			SCH_Tasks_G.head->prev = copyNode;
+			SCH_Tasks_G.head = copyNode;
+		}else{
+			node* tmp = SCH_Tasks_G.head;
+			//update new value for Delay
+			while(tmp != NULL	&&	copyNode->task.Delay > tmp->task.Delay){
+				copyNode->task.Delay -= tmp->task.Delay;
+				tmp = tmp->next;
 			}
 
-			if(copyNode->task.Delay <= SCH_Tasks_G.head->task.Delay){
-				//Update Delay
-				SCH_Tasks_G.head->task.Delay -= copyNode->task.Delay;
-				//Insert First
-				copyNode->next = SCH_Tasks_G.head;
-				SCH_Tasks_G.head->prev = copyNode;
-				SCH_Tasks_G.head = copyNode;
+			if(tmp != NULL){
+				//Insert Middle
+				copyNode->prev = tmp->prev;
+				copyNode->next = tmp;
+				tmp->prev->next = copyNode;
+				tmp->prev = copyNode;
+
+				//Minus the following task
+				tmp->task.Delay -= copyNode->task.Delay;
 			}else{
-				node* tmp = SCH_Tasks_G.head;
-				//update new value for Delay
-				while(tmp != NULL	&&	copyNode->task.Delay > tmp->task.Delay){
-					copyNode->task.Delay -= tmp->task.Delay;
-					tmp = tmp->next;
-				}
-
-				if(tmp != NULL){
-					//Insert Middle
-					copyNode->prev = tmp->prev;
-					copyNode->next = tmp;
-					tmp->prev->next = copyNode;
-					tmp->prev = copyNode;
-
-					//Minus the following task
-					tmp->task.Delay -= copyNode->task.Delay;
-				}else{
-					//Insert Last
-					SCH_Tasks_G.tail->next = copyNode;
-					copyNode->prev = SCH_Tasks_G.tail;
-					SCH_Tasks_G.tail = copyNode;
-				}
+				//Insert Last
+				SCH_Tasks_G.tail->next = copyNode;
+				copyNode->prev = SCH_Tasks_G.tail;
+				SCH_Tasks_G.tail = copyNode;
 			}
 		}
 	}
